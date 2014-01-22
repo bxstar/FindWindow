@@ -15,8 +15,8 @@ namespace FindWindow
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            //Application.Run(new Form1());
-            Application.Run(new Frm联通());
+            Application.Run(new Form1());
+            //Application.Run(new Frm联通());
         }
     }
 }
