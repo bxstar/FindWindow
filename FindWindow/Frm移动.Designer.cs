@@ -1,6 +1,6 @@
 ﻿namespace FindWindow
 {
-    partial class Form1
+    partial class Frm移动
     {
         /// <summary>
         /// 必需的设计器变量。

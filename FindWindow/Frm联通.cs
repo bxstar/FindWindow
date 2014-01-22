@@ -88,8 +88,8 @@ namespace FindWindow
         private void btnSend_Click(object sender, EventArgs e)
         {
             //沃友无法通过标题获取窗口句柄，因此只能根据进程来获取句柄
-            int pid = Helper.GetPidByProcessName("WoYou");
-            IntPtr wndFx = new Helper().GetMainWindowHandle(pid);
+            int pid = Win32Helper.GetPidByProcessName("WoYou");
+            IntPtr wndFx = new Win32Helper().GetMainWindowHandle(pid);
             Rectangle rc = new Rectangle();
             GetWindowRect(wndFx.ToInt32(), ref rc);
 

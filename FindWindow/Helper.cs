@@ -1,171 +1,144 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Drawing;
+using System.IO;
+using System.Net;
+using System.IO.Compression;
+using System.Linq;
 
 namespace FindWindow
 {
     public class Helper
     {
-        public delegate bool EnumThreadWindowsCallback(IntPtr hWnd, IntPtr lParam);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern bool EnumWindows(EnumThreadWindowsCallback callback, IntPtr extraData);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern int GetWindowThreadProcessId(HandleRef handle, out int processId);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
-        public static extern IntPtr GetWindow(HandleRef hWnd, int uCmd);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        public static extern bool IsWindowVisible(HandleRef hWnd);
-
-        [DllImportAttribute("kernel32.dll", EntryPoint = "ReadProcessMemory")]
-        public static extern bool ReadProcessMemory
-            (
-                IntPtr hProcess,
-                IntPtr lpBaseAddress,
-                IntPtr lpBuffer,
-                int nSize,
-                IntPtr lpNumberOfBytesRead
-            );
-
-        [DllImportAttribute("kernel32.dll", EntryPoint = "OpenProcess")]
-        public static extern IntPtr OpenProcess
-            (
-                int dwDesiredAccess,
-                bool bInheritHandle,
-                int dwProcessId
-            );
-
-        [DllImport("kernel32.dll")]
-        private static extern void CloseHandle
-            (
-                IntPtr hObject
-            );
-
-        //写内存
-        [DllImportAttribute("kernel32.dll", EntryPoint = "WriteProcessMemory")]
-        public static extern bool WriteProcessMemory
-            (
-                IntPtr hProcess,
-                IntPtr lpBaseAddress,
-                int[] lpBuffer,
-                int nSize,
-                IntPtr lpNumberOfBytesWritten
-            );
-
-        private bool haveMainWindow = false;
-        private IntPtr mainWindowHandle = IntPtr.Zero;
-        private int processId = 0;
-
         /// <summary>
-        /// 根据进程名获取PID
+        /// 捕获图片
         /// </summary>
-        public static int GetPidByProcessName(string processName)
+        public static Image GetImgOnLine(string src)
         {
-            Process[] arrayProcess = Process.GetProcessesByName(processName);
-
-            foreach (Process p in arrayProcess)
-            {
-                return p.Id;
-            }
-            return 0;
+            WebClient wbc = new WebClient();
+            Image img = null;
+            byte[] content = wbc.DownloadData(src);
+            MemoryStream stream = new MemoryStream(content);
+            img = Image.FromStream(stream);
+            wbc.Dispose();
+            return img;
         }
 
         /// <summary>
-        /// 根据进程ID获取主窗口句柄
+        /// 根据图片和图片宽度取图片的缩略图
         /// </summary>
-        public IntPtr GetMainWindowHandle(int processId)
+        /// <param name="image">图片</param>
+        /// <param name="imagewidth">图片宽度</param>
+        /// <returns></returns>
+        public static Image GetImageFromImageWidth(Image image, int imagewidth)
         {
-            if (!this.haveMainWindow)
+            if (image != null)
             {
-                this.mainWindowHandle = IntPtr.Zero;
-                this.processId = processId;
-                EnumThreadWindowsCallback callback = new EnumThreadWindowsCallback(this.EnumWindowsCallback);
-                EnumWindows(callback, IntPtr.Zero);
-                GC.KeepAlive(callback);
-
-                this.haveMainWindow = true;
+                int oldwidth = image.Width;
+                int oldheight = image.Height;
+                double newwidth = oldwidth;
+                double newheight = oldheight;
+                newwidth = imagewidth;
+                newheight = (double)(oldheight / (oldwidth / newwidth));
+                Image myThumbnail = image.GetThumbnailImage((int)newwidth, (int)newheight, null, IntPtr.Zero);
+                return myThumbnail;
             }
-            return this.mainWindowHandle;
-        }
-
-        public bool EnumWindowsCallback(IntPtr handle, IntPtr extraParameter)
-        {
-            int num;
-            GetWindowThreadProcessId(new HandleRef(this, handle), out num);
-            if ((num == this.processId) && this.IsMainWindow(handle))
+            else
             {
-                this.mainWindowHandle = handle;
-                return false;
+                return null;
             }
-            return true;
         }
 
-        private bool IsMainWindow(IntPtr handle)
-        {
-            return (!(GetWindow(new HandleRef(this, handle), 4) != IntPtr.Zero) && IsWindowVisible(new HandleRef(this, handle)));
-        }
 
-        //获取窗体的进程标识ID
-        public static int GetPid(string windowTitle)
+        /// <summary>
+        /// 获取网卡地址
+        /// </summary>
+        public static string GetMacAddress()
         {
-            int rs = 0;
-            Process[] arrayProcess = Process.GetProcesses();
-            foreach (Process p in arrayProcess)
+            const int MIN_MAC_ADDR_LENGTH = 12;
+            string macAddress = string.Empty;
+            long maxSpeed = -1;
+
+            foreach (System.Net.NetworkInformation.NetworkInterface nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
             {
-                if (p.MainWindowTitle.IndexOf(windowTitle) != -1)
+                string tempMac = nic.GetPhysicalAddress().ToString();
+                if (nic.Speed > maxSpeed &&
+                    !string.IsNullOrEmpty(tempMac) &&
+                    tempMac.Length >= MIN_MAC_ADDR_LENGTH)
                 {
-                    rs = p.Id;
-                    break;
+                    maxSpeed = nic.Speed;
+                    macAddress = tempMac;
                 }
             }
 
-            return rs;
+            return macAddress;
         }
 
-        //根据窗体标题查找窗口句柄（支持模糊匹配）
-        public static IntPtr FindWindow(string title)
+        /// <summary>
+        /// 获取网页编码为GBK数据
+        /// </summary>
+        /// <param name="url">网址</param>
+        /// <returns></returns>
+        public static string DownLoadGBKString(string url)
         {
-            Process[] ps = Process.GetProcesses();
-            foreach (Process p in ps)
-            {
-                if (p.MainWindowTitle.IndexOf(title) != -1)
-                {
-                    return p.MainWindowHandle;
-                }
-            }
-            return IntPtr.Zero;
+            WebClient wb = new WebClient();
+            wb.Headers.Add("Accept-Encoding", "gzip, deflate");
+            wb.Encoding = Encoding.GetEncoding("GBK");
+            return GZipString(wb.DownloadData(url), wb.Encoding, wb.ResponseHeaders["Content-Encoding"]);
         }
 
-        //读取内存中的值
-        public static int ReadMemoryValue(int baseAddress, string processName)
+        public static string GZipString(byte[] byteArray, Encoding encoder, string sContentEncoding)
         {
             try
             {
-                byte[] buffer = new byte[4];
-                IntPtr byteAddress = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0); //获取缓冲区地址
-                IntPtr hProcess = OpenProcess(0x1F0FFF, false, GetPidByProcessName(processName));
-                ReadProcessMemory(hProcess, (IntPtr)baseAddress, byteAddress, 4, IntPtr.Zero); //将制定内存中的值读入缓冲区
-                CloseHandle(hProcess);
-                return Marshal.ReadInt32(byteAddress);
+                if (sContentEncoding == "gzip")
+                {
+                    // 处理　gzip string sContentEncoding = client.ResponseHeaders["Content-Encoding"]；if （sContentEncoding == "gzip"）
+                    MemoryStream ms = new MemoryStream(byteArray);
+                    MemoryStream msTemp = new MemoryStream();
+                    int count = 0;
+                    GZipStream gzip = new GZipStream(ms, CompressionMode.Decompress);
+                    byte[] buf = new byte[1000];
+                    while ((count = gzip.Read(buf, 0, buf.Length)) > 0)
+                    { msTemp.Write(buf, 0, count); }
+                    byteArray = msTemp.ToArray(); // end-gzip
+                    return encoder.GetString(byteArray);
+                }
+                else
+                {
+                    return encoder.GetString(byteArray);
+                }
             }
             catch
             {
-                return 0;
+                return encoder.GetString(byteArray);
             }
         }
 
-        //将值写入指定内存地址中
-        public static void WriteMemoryValue(int baseAddress, string processName, int value)
+        /// <summary>
+        /// 获取手机号类型
+        /// </summary>
+        /// <param name="mobile">手机号</param>
+        public static String GetMobileType(String mobile)
         {
-            IntPtr hProcess = OpenProcess(0x1F0FFF, false, GetPidByProcessName(processName)); //0x1F0FFF 最高权限
-            WriteProcessMemory(hProcess, (IntPtr)baseAddress, new int[] { value }, 4, IntPtr.Zero);
-            CloseHandle(hProcess);
+            if (mobile.StartsWith("0") || mobile.StartsWith("+860"))
+            {
+                mobile = mobile.Substring(mobile.IndexOf("0") + 1, mobile.Length);
+            }
+            String[] chinaUnicom = new String[] { "130", "131", "132", "133", "155", "156", "185", "186" };
+            String[] chinaMobile1 = new String[] { "135", "136", "137", "138", "139", "147", "150", "151", "152", "157", "158", "159", "182", "183", "184", "187", "188" };
+            String[] chinaMobile2 = new String[] { "1340", "1341", "1342", "1343", "1344", "1345", "1346", "1347", "1348" };
+
+            Boolean bolChinaUnicom = (chinaUnicom.Contains(mobile.Substring(0, 3)));
+            Boolean bolChinaMobile1 = (chinaMobile1.Contains(mobile.Substring(0, 3)));
+            Boolean bolChinaMobile2 = (chinaMobile2.Contains(mobile.Substring(0, 4)));
+
+            if (bolChinaUnicom)
+                return "联通";
+            if (bolChinaMobile1 || bolChinaMobile2)
+                return "移动";
+            return "电信";
         }
     }
 }

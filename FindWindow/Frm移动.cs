@@ -12,7 +12,7 @@ using System.Threading;
 
 namespace FindWindow
 {
-    public partial class Form1 : Form
+    public partial class Frm移动 : Form
     {
         //设置鼠标位置
         [DllImport("user32.dll")]
@@ -71,7 +71,7 @@ namespace FindWindow
 
         private const int WM_GETTEXT = 0x0D;
 
-        public Form1()
+        public Frm移动()
         {
             InitializeComponent();
         }
