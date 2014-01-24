@@ -3,17 +3,24 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
-using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Collections;
 using System.Threading;
+using log4net;
 
 namespace FindWindow
 {
     public partial class Frm移动 : Form
     {
+        //日志类
+        ILog logger = LogManager.GetLogger("Logger");
+        /// <summary>
+        /// 信息数
+        /// </summary>
+        private int MsgCount = 0;
+
         //设置鼠标位置
         [DllImport("user32.dll")]
         private static extern bool SetCursorPos(int X, int Y);
@@ -57,7 +64,7 @@ namespace FindWindow
         private const int MOUSEEVENTF_LEFTUP = 0x0004; //模拟鼠标左键抬起参数
 
         //SendMessage参数
-        
+
         private const int WM_KEYDOWN = 0X100;
         private const int WM_KEYUP = 0X101;
         private const int WM_SYSCHAR = 0X106;
@@ -78,7 +85,8 @@ namespace FindWindow
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            txtWindowName.Text = "飞信2012";
+            btnStop.Enabled = false;
+            txtWindowName.Text = "飞信2013";
             txtUserCode.Text = "15901925614";
             txtMsg.Text = "我是一只小小鸟";
 
@@ -115,8 +123,10 @@ namespace FindWindow
 
         }
 
-        private void btnSearch_Click(object sender, EventArgs e)
+        private void btnSendOneMsg_Click(object sender, EventArgs e)
         {
+            MsgCount++;
+            logger.InfoFormat("第{0}条开始发送", MsgCount);
             IntPtr wndFx = FindWindow(null, this.txtWindowName.Text);
 
             if (wndFx == null)
@@ -163,7 +173,7 @@ namespace FindWindow
                 WinAPIuser32.CallFuntion = null;
 
                 //设置接收人
-                Console.WriteLine("lst count:" + list.Count());
+                Console.WriteLine("lst count:" + list.Count);
                 WinAPIuser32.SendTextMessage(list[0], WM_SETTEXT, 0, txtUserCode.Text);
 
                 Thread.Sleep(500);
@@ -176,7 +186,7 @@ namespace FindWindow
 
 
                 //移动到发送按钮，并点击
-                SetCursorPos(rcSendMsg.X + 340, rcSendMsg.Y + 210); 
+                SetCursorPos(rcSendMsg.X + 340, rcSendMsg.Y + 210);
                 mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
                 mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 
@@ -187,6 +197,8 @@ namespace FindWindow
                 mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
             }
 
+            logger.InfoFormat("第{0}条完成发送", MsgCount);
+            btnSendOneMsg.Enabled = true;
         }
 
 
@@ -231,7 +243,7 @@ namespace FindWindow
                 WinAPIuser32.CallFuntion = null;
 
                 //设置好友
-                Console.WriteLine("lst count:" + list.Count());
+                Console.WriteLine("lst count:" + list.Count);
                 WinAPIuser32.SendTextMessage(list[3], WM_SETTEXT, 0, txtUserCode.Text);
 
                 //移动到发送按钮，并点击
@@ -285,6 +297,65 @@ namespace FindWindow
             {
                 SendMessage(myIntPtr, WM_CHAR, ch[i], 0);
             }
+        }
+
+        private void btnStop_Click(object sender, EventArgs e)
+        {
+            btnStop.Enabled = false;
+            btnStart.Enabled = true;
+            btnSendOneMsg.Enabled = true;
+            timer1.Enabled = false;
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            if (!btnSendOneMsg.Enabled)
+            {
+                btnSendOneMsg.Enabled = true;
+            }
+            //btnSearch_Click(null, null);
+            btnGetMsgSendPhone_Click(null, null);
+            
+        }
+
+        private void btnStart_Click(object sender, EventArgs e)
+        {
+            btnStop.Enabled = true;
+            btnStart.Enabled = false;
+            timer1.Enabled = true;
+        }
+
+        /// <summary>
+        /// 获取信息，并通过飞信发送
+        /// </summary>
+        private void btnGetMsgSendPhone_Click(object sender, EventArgs e)
+        {
+            //DianCheWebService.ItemClickService ws = new DianCheWebService.ItemClickService();
+            //DianCheWebService.MySoapHeader header = new DianCheWebService.MySoapHeader();
+            //header.UserName = "yurongsheng";
+            //header.PassWord = "carlos";
+            //ws.MySoapHeaderValue = header;
+            //var arrMsg = ws.GetMsg("短信");
+            //if (arrMsg.Length == 0)
+            //    return;
+            //foreach (var msg in arrMsg)
+            //{
+            //    try
+            //    {
+            //        txtUserCode.Text = msg.msg_to;
+            //        txtMsg.Text = msg.msg_content;
+            //        Thread.Sleep(1000);
+
+            //        btnSendOneMsg_Click(null, null);
+            //        ws.UpdateMsgStatus(msg.local_msg_id, 2);
+            //    }
+            //    catch (Exception se)
+            //    {
+            //        logger.Error(string.Format("用户：{0}，local_msg_id：{1}，信息发送失败", msg.msg_from, msg.local_msg_id), se);
+            //        ws.UpdateMsgStatus(msg.local_msg_id, 3);
+            //    }
+
+            //}
         }
 
 
