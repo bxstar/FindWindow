@@ -46,6 +46,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FrmBase.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FrmBase.Designer.cs">
+      <DependentUpon>FrmBase.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Frm旺旺.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Frm旺旺.Designer.cs">
+      <DependentUpon>Frm旺旺.cs</DependentUpon>
+    </Compile>
     <Compile Include="Frm移动.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -64,6 +76,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UtilFindWindow.cs" />
     <Compile Include="WinAPIuser32.cs" />
+    <EmbeddedResource Include="Frm旺旺.resx">
+      <DependentUpon>Frm旺旺.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Frm移动.resx">
       <DependentUpon>Frm移动.cs</DependentUpon>
     </EmbeddedResource>
