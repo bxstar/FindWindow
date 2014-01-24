@@ -101,6 +101,17 @@ namespace FindWindow
 
         private void btnAddUser_Click(object sender, EventArgs e)
         {
+            //沃友无法通过标题获取窗口句柄，因此只能根据进程来获取句柄
+            int pid = Win32Helper.GetPidByProcessName("WoYou");
+            IntPtr wndFx = new Win32Helper().GetMainWindowHandle(pid);
+            Rectangle rc = new Rectangle();
+            GetWindowRect(wndFx.ToInt32(), ref rc);
+
+            //移动到短信按钮，并点击
+            SetCursorPos(rc.X + 40, rc.Y + 150);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+
 
         }
     }
